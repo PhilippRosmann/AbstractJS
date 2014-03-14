@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -28,6 +27,7 @@ public abstract class AbstractJS
     public static synchronized void setLogLevel(Level newLevel) throws SecurityException
     {
         LOG.setLevel(newLevel);
+        RequestHandler.setLogLevel(newLevel);
     }
     
     public void start(int port) throws IOException
@@ -64,8 +64,6 @@ public abstract class AbstractJS
             serverSocket.setSoTimeout(1000);
         }
         
-        
-        
         @Override
         public void run()
         {
@@ -79,6 +77,7 @@ public abstract class AbstractJS
                     try
                     {
                         Socket client = serverSocket.accept();
+                        requestThreadPool.execute(new RequestHandler(client, AbstractJS.this));
                     }
                     catch (SocketTimeoutException ignored){ }
                 }
@@ -87,9 +86,12 @@ public abstract class AbstractJS
             }
             catch (IOException ex)
             {
-                LOG.log(Level.SEVERE, "Server couldn´t exit cleanly", ex);
+                LOG.log(Level.SEVERE, "Server crashed !", ex);
             }
         }
 
     }
+    
+    protected abstract byte[] handleRequestGetResponse(byte[] request);
+    
 }
